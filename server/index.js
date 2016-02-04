@@ -4,57 +4,74 @@ var dotenv = require('dotenv').config();
 
 graph.setAccessToken(process.env.FB_ACCESS_TOKEN);
 
-graph.get("385961098197634/feed?fields=from, link, created_time, updated_time, message, source", function(err, res) {
-  console.log(res);
-  // TODO: Add error handling
-  if (res && res.data) {
-    for (var i = 0; i < res.data.length; i++) {
-      var postData = res.data[i];
-      var message = postData.message;
-      var link = postData.link;
-      var prototypeUrl = undefined;
-      if (link && link.indexOf("share.framerjs.com/") > 0) {
-        prototypeUrl = link;
-      }
-      else if (message && message.indexOf("share.framerjs.com/") > 0) {
-        // TODO: Think about other links that could appear in the message
-        prototypeUrl = "http://" + message.substr(message.indexOf('share.framerjs.com/'), 31);
-      }
-      if (prototypeUrl) {
-        //Get user creator safely
-        var creatorName = '';
-        var creatorId = '';
-        if (postData.from) {
-          creatorName = postData.from.name || '';
-          creatorId = postData.from.id || '';
-        }
-        models.Prototype.upsert({
-          fb_id: postData.id,
-          creator_name: creatorName,
-          creator_fb_id: creatorId,
-          message: message,
-          created_time: postData.created_time,
-          updated_time: postData.updated_time,
-          url: prototypeUrl
-        }).catch(function(error) {
-          console.log("Error upserting value: ", error);
-        })
-      }
-    };
-  }
-  // if(res.paging && res.paging.next) {
-  //   graph.get(res.paging.next, function(err, res) {
-  //     console.log(res);
-  //     if(res.paging && res.paging.next) {
-  //       graph.get(res.paging.next, function(err, res) {
-  //         console.log(res);
+var getLikes = function(postData, prototypeUrl) {
+  graph.get(postData.id + "/likes?summary=1", function(err, res) {
+    var likes = 0;
+    if (res.summary && res.summary.total_count) {
+      likes = res.summary.total_count;
+    }
+    //Get prototype creator safely
+    var creatorName = '';
+    var creatorId = '';
+    if (postData.from) {
+      creatorName = postData.from.name || '';
+      creatorId = postData.from.id || '';
+    }
+    models.Prototype.upsert({
+      fb_id: postData.id,
+      creator_name: creatorName,
+      creator_fb_id: creatorId,
+      message: postData.message,
+      created_time: postData.created_time,
+      updated_time: postData.updated_time,
+      likes: likes,
+      url: prototypeUrl
+    }).catch(function(error) {
+      // console.log("Error upserting value: ", error);
+    });
+  });
+}
 
-  //       });
-  //     }
+var getPage = function() {
   
-  //   });
-  // }
-});
+  graph.get("385961098197634/feed?fields=from,link,created_time,updated_time,message,source", function(err, res) {
+    console.log(res);
+    // TODO: Add error handling
+    if (res && res.data) {
+      for (var i = 0; i < res.data.length; i++) {
+        var postData = res.data[i];
+        var message = postData.message;
+        var link = postData.link;
+        var prototypeUrl = undefined;
+        if (link && link.indexOf("share.framerjs.com/") > 0) {
+          prototypeUrl = link;
+        }
+        else if (message && message.indexOf("share.framerjs.com/") > 0) {
+          // TODO: Think about other links that could appear in the message
+          prototypeUrl = "http://" + message.substr(message.indexOf('share.framerjs.com/'), 31);
+        }
+        if (prototypeUrl) {
+          getLikes(postData, prototypeUrl);
+        }
+      };
+    }
+    // if(res.paging && res.paging.next) {
+    //   graph.get(res.paging.next, function(err, res) {
+    //     console.log(res);
+    //     if(res.paging && res.paging.next) {
+    //       graph.get(res.paging.next, function(err, res) {
+    //         console.log(res);
+
+    //       });
+    //     }
+    
+    //   });
+    // }
+  });
+
+}
+
+getPage();
 
 // { data: 
 //    [ { message: 'Hi. New to Framer and CoffeeScript. Very keen to learn, Are there any certified experts based in London for 1:1coaching?',
