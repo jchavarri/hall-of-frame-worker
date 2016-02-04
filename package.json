@@ -1,0 +1,18 @@
+{
+  "name": "hall-of-frame",
+  "version": "0.0.1",
+  "description": "Best FramerJS prototypes on the FB group",
+  "main": "server/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^2.0.0",
+    "fbgraph": "^1.1.0",
+    "pg": "^4.4.4",
+    "sequelize": "^3.19.1",
+    "sequelize-cli": "^2.3.1"
+  }
+}
