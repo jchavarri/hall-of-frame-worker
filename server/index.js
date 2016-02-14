@@ -4,6 +4,8 @@ var dotenv = require('dotenv').config();
 
 graph.setAccessToken(process.env.FB_ACCESS_TOKEN);
 
+var pagesCounter = 0;
+
 var getLikes = function(postData, prototypeUrl) {
   graph.get(postData.id + "/likes?summary=1", function(err, res) {
     var likes = 0;
@@ -32,9 +34,12 @@ var getLikes = function(postData, prototypeUrl) {
   });
 }
 
-var getPage = function() {
-  
-  graph.get("385961098197634/feed?fields=from,link,created_time,updated_time,message,source", function(err, res) {
+var getPage = function(url) {
+
+  pagesCounter++;
+  console.log("getting page " + pagesCounter);
+    
+  graph.get(url, function(err, res) {
     console.log(res);
     // TODO: Add error handling
     if (res && res.data) {
@@ -55,23 +60,19 @@ var getPage = function() {
         }
       };
     }
-    // if(res.paging && res.paging.next) {
-    //   graph.get(res.paging.next, function(err, res) {
-    //     console.log(res);
-    //     if(res.paging && res.paging.next) {
-    //       graph.get(res.paging.next, function(err, res) {
-    //         console.log(res);
-
-    //       });
-    //     }
-    
-    //   });
-    // }
+    if(res.paging && res.paging.next && pagesCounter < 5) {
+      setTimeout(function() {
+        getPage(res.paging.next);
+      }, 10000);
+    }
+    else if (pagesCounter > 3) {
+      console.log("Pages limit reached. Stopping.")
+    }
   });
 
 }
 
-getPage();
+getPage("385961098197634/feed?fields=from,link,created_time,updated_time,message,source");
 
 // { data: 
 //    [ { message: 'Hi. New to Framer and CoffeeScript. Very keen to learn, Are there any certified experts based in London for 1:1coaching?',
