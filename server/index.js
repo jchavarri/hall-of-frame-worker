@@ -5,6 +5,7 @@ var dotenv = require('dotenv').config();
 graph.setAccessToken(process.env.FB_ACCESS_TOKEN);
 
 var pagesCounter = 0;
+var pagesLimit = 2;
 
 var getLikes = function(postData, prototypeUrl) {
   graph.get(postData.id + "/likes?summary=1", function(err, res) {
@@ -19,18 +20,45 @@ var getLikes = function(postData, prototypeUrl) {
       creatorName = postData.from.name || '';
       creatorId = postData.from.id || '';
     }
-    models.Prototype.upsert({
-      fb_id: postData.id,
-      creator_name: creatorName,
-      creator_fb_id: creatorId,
-      message: postData.message,
-      created_time: postData.created_time,
-      updated_time: postData.updated_time,
-      likes: likes,
-      url: prototypeUrl
-    }).catch(function(error) {
-      // console.log("Error upserting value: ", error);
-    });
+    models.User.upsert({
+      fb_id: creatorId,
+      name: creatorName
+    })
+    .then(function(upserted){
+      // 1 - Get the profile picture ID
+      graph.get(creatorId + "/picture?redirect=false", function(err, res) {
+        if (err) {
+          console.log("Error retrieving pic: ", err);
+          return;
+        }
+        models.User.upsert({
+          fb_id: creatorId,
+          name: creatorName,
+          profile_picture_url: res.data.url
+        })
+        .catch(function(error) {
+          console.log("Error upserting user: ", error);
+        });
+      });
+      
+      // 2 - In parallel, insert the prototype data
+      models.Prototype.upsert({
+        fb_id: postData.id,
+        creator_fb_id: creatorId,
+        message: postData.message,
+        created_time: postData.created_time,
+        updated_time: postData.updated_time,
+        likes: likes,
+        url: prototypeUrl
+      })
+      .catch(function(error) {
+        console.log("Error upserting prototype: ", error);
+      });
+
+    })
+    .catch(function(error) {
+      console.log("Error upserting user: ", error);
+    })
   });
 }
 
@@ -40,7 +68,6 @@ var getPage = function(url) {
   console.log("getting page " + pagesCounter);
     
   graph.get(url, function(err, res) {
-    console.log(res);
     // TODO: Add error handling
     if (res && res.data) {
       for (var i = 0; i < res.data.length; i++) {
@@ -60,12 +87,12 @@ var getPage = function(url) {
         }
       };
     }
-    if(res.paging && res.paging.next && pagesCounter < 5) {
+    if(res.paging && res.paging.next && pagesCounter < pagesLimit) {
       setTimeout(function() {
         getPage(res.paging.next);
       }, 10000);
     }
-    else if (pagesCounter > 3) {
+    else if (pagesCounter >= pagesLimit) {
       console.log("Pages limit reached. Stopping.")
     }
   });
