@@ -4,8 +4,10 @@ var dotenv = require('dotenv').config();
 
 graph.setAccessToken(process.env.FB_ACCESS_TOKEN);
 
+var firstPageUrl = "385961098197634/feed?fields=from,link,created_time,updated_time,message,source";
 var pagesCounter = 0;
 var pagesLimit = 2;
+var delayBetweenPages = 20*1000;
 
 var getLikes = function(postData, prototypeUrl) {
   graph.get(postData.id + "/likes?summary=1", function(err, res) {
@@ -66,9 +68,17 @@ var getPage = function(url) {
 
   pagesCounter++;
   console.log("getting page " + pagesCounter);
-    
+  
+  models.LastPageFetched.upsert({
+    id: 1,
+    url: url
+  }); 
+
   graph.get(url, function(err, res) {
-    // TODO: Add error handling
+    if (err) {
+      console.log("Error getting page: ", url, err);
+      return;
+    }
     if (res && res.data) {
       for (var i = 0; i < res.data.length; i++) {
         var postData = res.data[i];
@@ -90,16 +100,29 @@ var getPage = function(url) {
     if(res.paging && res.paging.next && pagesCounter < pagesLimit) {
       setTimeout(function() {
         getPage(res.paging.next);
-      }, 10000);
+      }, delayBetweenPages);
     }
     else if (pagesCounter >= pagesLimit) {
       console.log("Pages limit reached. Stopping.")
+    }
+    else {
+      console.log("No paging.next field found. Starting again");
+      setTimeout(function() {
+        getPage(firstPageUrl);
+      }, delayBetweenPages);
     }
   });
 
 }
 
-getPage("385961098197634/feed?fields=from,link,created_time,updated_time,message,source");
+models.LastPageFetched.findById(1).then(function(lastPageFetched) {
+  if (lastPageFetched) {
+    getPage(lastPageFetched.url);
+  }
+  else {
+    getPage(firstPageUrl);
+  }
+});
 
 // { data: 
 //    [ { message: 'Hi. New to Framer and CoffeeScript. Very keen to learn, Are there any certified experts based in London for 1:1coaching?',

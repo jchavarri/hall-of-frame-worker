@@ -12,6 +12,7 @@ A tiny NodeJS app that retrieves data from FramerJS Facebook group, to retrieve 
 
 - Clone the repo
 - Create a `.env` file that includes the required environment variables
+  * `FB_ACCESS_TOKEN`
 - Run `npm install`
 - Run `node ./server/index.js
 
