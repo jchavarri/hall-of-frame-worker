@@ -7,7 +7,8 @@ module.exports = function(sequelize, DataTypes) {
     likes: DataTypes.INTEGER,
     message: DataTypes.TEXT,
     created_time: DataTypes.DATE,
-    updated_time: DataTypes.DATE
+    updated_time: DataTypes.DATE,
+    picture: DataTypes.STRING
   }, {
     classMethods: {
       associate: function(models) {

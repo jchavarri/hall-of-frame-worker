@@ -4,6 +4,7 @@ var dotenv = require('dotenv').config();
 
 graph.setAccessToken(process.env.FB_ACCESS_TOKEN);
 
+// var firstPageUrl = "385961098197634/feed?limit=500&fields=from,link,created_time,updated_time,message,source";
 var firstPageUrl = "385961098197634/feed?fields=from,link,created_time,updated_time,message,source";
 var pagesCounter = 0;
 var pagesLimit = 2;
@@ -51,7 +52,8 @@ var getLikes = function(postData, prototypeUrl) {
         created_time: postData.created_time,
         updated_time: postData.updated_time,
         likes: likes,
-        url: prototypeUrl
+        url: prototypeUrl,
+        picture: postData.picture
       })
       .catch(function(error) {
         console.log("Error upserting prototype: ", error);
